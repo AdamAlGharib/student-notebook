@@ -2,7 +2,7 @@
 
 A personal academic notebook built with React and Vite for GitHub Pages. The public deployment contains the application and an AES-256-GCM encrypted content snapshot. A private key unlocks the content in the browser; there is no Google/ChatGPT sign-in or server API.
 
-Deployment status: intended repository `AdamAlGharib/student-notebook`; repository creation, Pages deployment and hosted readback are pending. Record the verified live URL here after deployment. The former Sites server prototype was never deployed and is archived in a local Git tag.
+Live: [https://adamalgharib.github.io/student-notebook/](https://adamalgharib.github.io/student-notebook/), deployed from `AdamAlGharib/student-notebook`. GitHub Pages deployment succeeded and encrypted content was unlocked and read back in Chrome on September 14, 2026. The former Sites server prototype was never deployed and is archived in a local Git tag.
 
 ## Content and device edits
 
@@ -62,6 +62,6 @@ Always include the Wispr meeting ID and modification timestamp when available. K
 
 ## Development and remaining checks
 
-Use `npm install` and `npm run dev` for the local preview at `http://localhost:3000/`. Use `npm run build` for `dist/`, `npm run preview` to serve that build, and the static tests/typecheck above. The current static release is undergoing validation; the old server-authentication integration tests are historical evidence only.
+Use `npm install` and `npm run dev` for the local preview at `http://localhost:3000/`. Use `npm run build` for `dist/`, `npm run preview` to serve that build, and the static tests/typecheck above. The static release passes 40 local checks, TypeScript and a production build. Hosted ciphertext matches the local release byte-for-byte. Browser verification covered unlocking, remembered access, weekly agenda navigation, and a reversible completion edit surviving reload. The old server-authentication integration tests are historical evidence only.
 
 First real course transcript validation, the recording allowance, scheduled source/browser access and recurring task activation remain pending. No scheduled processing or paid AI service is active. Assistant updates run when requested until an actual scheduled workflow has been tested and enabled.
