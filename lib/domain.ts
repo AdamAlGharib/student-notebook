@@ -14,6 +14,8 @@ export type Course = {
   name: string | null;
   color: string;
   instructor?: string;
+  status?: 'active' | 'dropped';
+  droppedOn?: string;
   gradeCategories: Category[];
   gradeCaveats: string[];
   source?: string;
@@ -159,6 +161,20 @@ export function parentCourse(id: string) {
         : id === 'COMP3004'
           ? 'COMP3004A'
           : id;
+}
+export function activeAcademic(academic: Academic): Academic {
+  const courses = academic.courses.filter((course) => course.status !== 'dropped');
+  const activeIds = new Set(courses.map((course) => course.id));
+  const belongsToActiveCourse = (item: { course: string }) =>
+    activeIds.has(item.course) || activeIds.has(parentCourse(item.course));
+  return {
+    ...academic,
+    courses,
+    assessments: academic.assessments.filter(belongsToActiveCourse),
+    excluded: academic.excluded.filter(belongsToActiveCourse),
+    finals: academic.finals.filter(belongsToActiveCourse),
+    series: academic.series.filter(belongsToActiveCourse),
+  };
 }
 export function classesOn(academic: Academic, date: string) {
   const day = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'][

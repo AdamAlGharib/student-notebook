@@ -1,3 +1,4 @@
+import {activeAcademic} from './domain';
 import type {DashboardData, NoteMeta, NoteDetail, Lecture} from './domain';
 import {addLecture,base64,decrypt,emptyOverlay,encrypt,hash,importKey,lectureStatus,mergeLectures,mergedState,patchState,unbase64,validateSnapshot,validateState,type Envelope,type Overlay,type Snapshot} from './notebook-model';
 
@@ -19,7 +20,7 @@ export function publishedOn(){return snapshot.publishedAt;}
 export async function lockNotebook(){await write('key',undefined);location.reload();}
 function current(o:Overlay):Snapshot{return {...snapshot,academic:o.academic||snapshot.academic,state:mergedState(snapshot.state,o),lectures:mergeLectures(snapshot.lectures,o.lectures),annotations:{...snapshot.annotations,...o.annotations},files:{...snapshot.files,...o.files}};}
 async function meta(id:string,v:Snapshot['lectures'][string]['versions'][number]):Promise<NoteMeta>{const p=v.lecture;return {id,course:p.course,date:p.date,title:p.title,status:lectureStatus(p),version:v.version,updatedAt:v.updatedAt,sourceHash:await hash(JSON.stringify(p)),excerpt:(p.quickNotes||p.transcript).slice(0,220)};}
-async function dashboard():Promise<DashboardData>{const o=await overlay();const s=current(o);const notes=await Promise.all(Object.entries(s.lectures).map(([id,l])=>meta(id,l.versions.at(-1)!)));return {academic:s.academic,state:s.state,stateRevision:o.revision,notes:notes.sort((a,b)=>b.date.localeCompare(a.date)),name:'Adam',local:true};}
+async function dashboard():Promise<DashboardData>{const o=await overlay();const s=current(o);const notes=await Promise.all(Object.entries(s.lectures).map(([id,l])=>meta(id,l.versions.at(-1)!)));const academic=activeAcademic(s.academic);const active=new Set(academic.courses.map(c=>c.id));return {academic,state:s.state,stateRevision:o.revision,notes:notes.filter(n=>active.has(n.course)).sort((a,b)=>b.date.localeCompare(a.date)),name:'Adam',local:true};}
 function revision(expected:unknown,o:Overlay){if(expected!==o.revision)throw new Error('Another tab changed your study data. Reload this page before saving again.');}
 export async function notebookApi<T>(url:string,options?:RequestInit):Promise<T>{if(!key||!snapshot)throw new Error('Unlock your notebook first.');const path=new URL(url,location.origin);const method=options?.method||'GET';const json=()=>JSON.parse(String(options?.body||'{}'));
   let result:unknown;

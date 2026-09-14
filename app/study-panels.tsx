@@ -208,7 +208,8 @@ export function StudyPanel({ data, update, busy }: Props) {
   const [course, setCourse] = useState(data.academic.courses[0].id);
   const [date, setDate] = useState(torontoDate());
   const tasks = data.state.tasks;
-  const done = tasks.filter((t) => t.done).length;
+  const visibleTasks = tasks.filter(t => data.academic.courses.some(c => c.id === t.course));
+  const done = visibleTasks.filter((t) => t.done).length;
   function generate() {
     const generated = buildStudyTasks(data, torontoDate());
     const known = new Set(tasks.map((t) => t.id));
@@ -232,15 +233,15 @@ export function StudyPanel({ data, update, busy }: Props) {
             Plan from deadlines
           </Button>
         </div>
-        {tasks.length > 0 && (
+        {visibleTasks.length > 0 && (
           <div className="plan-progress">
             <span>
-              {done} of {tasks.length} finished
+              {done} of {visibleTasks.length} finished
             </span>
-            <Progress value={(done / tasks.length) * 100} />
+            <Progress value={(done / visibleTasks.length) * 100} />
           </div>
         )}
-        {tasks.map((t) => (
+        {visibleTasks.map((t) => (
           <div className="study-task" key={t.id}>
             <Checkbox
               checked={t.done}
@@ -278,7 +279,7 @@ export function StudyPanel({ data, update, busy }: Props) {
             </div>
           </div>
         ))}
-        {!tasks.length && (
+        {!visibleTasks.length && (
           <Empty>
             <EmptyHeader>
               <div className="empty-icon">
@@ -348,9 +349,9 @@ export function StudyPanel({ data, update, busy }: Props) {
         <div className="section-heading">
           <h2>Feedback to work with</h2>
         </div>
-        {data.state.grades.filter((g) => g.feedback).length ? (
+        {data.state.grades.filter((g) => g.feedback && data.academic.courses.some(c => c.id === g.course)).length ? (
           data.state.grades
-            .filter((g) => g.feedback)
+            .filter((g) => g.feedback && data.academic.courses.some(c => c.id === g.course))
             .map((g) => (
               <div className="feedback-item" key={g.course + g.category}>
                 <span className="course-tag">
