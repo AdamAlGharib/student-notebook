@@ -1,0 +1,11 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import {classesOn,gradeSummary,torontoDate} from '../lib/domain.ts';
+const seedPath=new URL('../../dashboard-academic-seed.json',import.meta.url);
+const academic=fs.existsSync(seedPath)?JSON.parse(fs.readFileSync(seedPath)):null;
+const privateSeedCheck={skip:academic?false:'Private academic seed is unavailable in this public checkout.'};
+test('seed preserves 27 assessments and excludes four provisional dates',privateSeedCheck,()=>{assert.equal(academic.assessments.length,27);assert.equal(academic.excluded.length,4);assert.equal(academic.assessments.filter(a=>a.course==='COMP3000A').length,1);assert.equal(academic.assessments.filter(a=>a.status==='tentative').length,2);assert.equal(academic.assessments.filter(a=>a.course==='COMP3007A'&&!a.time).length,11);});
+test('recurrence preserves Thanksgiving, reading week, and Monday replacement',privateSeedCheck,()=>{assert.equal(classesOn(academic,'2026-10-12').length,0);assert.equal(classesOn(academic,'2026-10-27').length,0);assert.deepEqual(classesOn(academic,'2026-12-11').map(x=>x.parent),['COMP4114A']);assert.equal(classesOn(academic,'2026-09-15').length,5);});
+test('Toronto date handles UTC rollover',()=>assert.equal(torontoDate(new Date('2026-09-15T01:00:00Z')),'2026-09-14'));
+test('ungraded entries are not zero and best three quiz results are selected',()=>{const c={id:'TEST101',gradeCategories:[{id:'quizzes',label:'Example quizzes',weight:45,countBest:3,totalItems:4,countedItemWeight:15}]};assert.deepEqual(gradeSummary(c,[]),{coverage:0,earned:0,average:null});const grades=[{course:c.id,category:'quizzes',score:null,scores:[80,90,null,null]}];assert.equal(gradeSummary(c,grades).coverage,30);assert.equal(gradeSummary(c,grades).average,85);grades[0].scores=[80,90,60,100];assert.equal(gradeSummary(c,grades).coverage,45);assert.equal(gradeSummary(c,grades).average,90);});

@@ -1,0 +1,25 @@
+import assert from 'node:assert/strict';
+const base='http://localhost:3000';
+const headers={'Content-Type':'application/json','Cookie':'__sites_local_auth=1','Origin':base};
+async function req(path,method='GET',value,extra={}){const res=await fetch(base+path,{method,headers:{...headers,...extra},body:value===undefined?undefined:JSON.stringify(value)});const text=await res.text();let result;try{result=JSON.parse(text);}catch{result={error:text};}return {status:res.status,body:result};}
+const seed=await req('/api/data');assert.equal(seed.status,200);assert.equal(seed.body.academic.assessments.length,27);
+const id='integration-'+Date.now();
+const lecture={meetingId:id,course:'COMP3007A',date:'2026-09-15',title:'[Local integration test]',transcript:'Speaker 1: A function maps an input to an output.\nSpeaker 1: This is a test fixture, not a lecture.',captureStatus:'partial',sourceModifiedAt:'2026-09-15T14:00:00Z',detailedNotes:'A function maps an input to an output. [Source](#source-L1)',id:'forged-id',version:999,status:'Ready'};
+const first=await req('/api/import','POST',lecture);assert.equal(first.status,200);assert.equal(first.body.version,1);
+const duplicate=await req('/api/import','POST',lecture);assert.equal(duplicate.body.unchanged,true);assert.equal(duplicate.body.version,1);
+const note=await req('/api/notes/'+first.body.id);assert.equal(note.body.id,first.body.id);assert.equal(note.body.status,'Partial recording');assert.equal(note.body.version,1);
+const annotation=await req('/api/notes/'+first.body.id,'PUT',{annotation:'Keep my explanation.',revision:note.body.annotationRevision});assert.equal(annotation.status,200);
+const stale=await req('/api/notes/'+first.body.id,'PUT',{annotation:'Stale overwrite',revision:note.body.annotationRevision});assert.equal(stale.status,409);
+const second=await req('/api/import','POST',{...lecture,captureStatus:'complete',sourceModifiedAt:'2026-09-15T15:00:00Z'});assert.equal(second.body.version,2);
+const read=await req('/api/notes/'+first.body.id);assert.equal(read.body.annotation,'Keep my explanation.');assert.equal(read.body.status,'Ready');
+const old=await req('/api/notes/'+first.body.id+'?version=1');assert.equal(old.body.version,1);assert.equal(old.body.status,'Partial recording');
+const downgrade=await req('/api/import','POST',{...lecture,transcript:'Older changed transcript'});assert.equal(downgrade.status,409);
+const other=await fetch(base+'/api/notes/'+first.body.id);assert.equal(other.status,404);
+const invalid=await req('/api/import','POST',{...lecture,meetingId:'invalid-'+id,course:'UNRELATED'});assert.equal(invalid.status,400);
+const crossOrigin=await req('/api/import','POST',lecture,{Origin:'https://example.com'});assert.equal(crossOrigin.status,403);
+const state=await req('/api/data');const invalidState=await req('/api/data','PUT',{revision:state.body.stateRevision,state:{...state.body.state,tasks:[{id:'bad',course:'COMP3007A',title:'Test',reason:{},date:'wrong',done:false}]}});assert.equal(invalidState.status,400);
+const before=JSON.stringify(state.body.academic.assessments);const partial=await req('/api/review','POST',{status:'partial',observedAt:'2026-09-14T17:30:00Z',sources:[{course:'COMP3007A',status:'sign-in-needed',url:'https://comp3007-f26.scs.carleton.ca/',detail:'Local integration test: expired session.'}]});assert.equal(partial.status,200);const after=await req('/api/data');assert.equal(JSON.stringify(after.body.academic.assessments),before);assert.equal(after.body.academic.reviewedOn,state.body.academic.reviewedOn);assert.equal(after.body.academic.sourceStatus,'Partial review; earlier data preserved');
+const excluded=await req('/api/review','POST',{status:'partial',observedAt:'2026-09-14T17:31:00Z',sources:[{course:'COMP3000A',status:'complete',url:'https://example.com/',detail:'Test source'}],assessments:[{id:'new-id',course:'COMP3000A',title:'Assignment 1',date:'2026-09-28',time:null,status:'published',source:'https://example.com/'}]});assert.equal(excluded.status,409);
+const form=new FormData();form.set('noteId',first.body.id);form.set('file',new Blob(['fixture'],{type:'text/plain'}),'fixture.txt');const fileRes=await fetch(base+'/api/files/upload',{method:'POST',headers:{Cookie:'__sites_local_auth=1',Origin:base},body:form});assert.equal(fileRes.status,200);const file=await fileRes.json();const f=await fetch(base+'/api/files/'+file.id,{headers:{Cookie:'__sites_local_auth=1'}});assert.equal(await f.text(),'fixture');const forbidden=await fetch(base+'/api/files/'+file.id);assert.equal(forbidden.status,404);
+const backup=await req('/api/export');assert.equal(backup.status,200);assert.ok(backup.body.lectures.some(x=>x.id===first.body.id));assert.equal(backup.body.attachmentsIncluded,false);
+console.log('PASS: seed, duplicate import, source revisions, stale-source rejection, annotation conflict/preservation, trusted metadata, owner isolation, invalid input, cross-origin writes, partial review preservation, excluded dates, private attachments, backup.');
