@@ -52,6 +52,8 @@ import {
   dayLabel,
 } from '@/lib/domain';
 import {notebookApi,downloadAttachment} from '../lib/notebook-store';
+import StudyVisual from './study-visual';
+import {exportStudyMarkdown} from '../lib/study-visual';
 export const api = notebookApi;
 export function download(filename: string, text: string, type = 'text/plain') {
   const url = URL.createObjectURL(new Blob([text], { type }));
@@ -117,7 +119,7 @@ export function Markdown({ text }: { text: string }) {
   return (
     <div className="markdown">
       {text.split(/(```[\s\S]*?```)/g).map((block, i) =>
-        block.startsWith('```') ? (
+        block.startsWith('```visual\n') ? <StudyVisual key={i} raw={block.slice(10).replace(/```$/, '').trim()} /> : block.startsWith('```') ? (
           <pre key={i}>
             <code>
               {block.replace(/^```[^\n]*\n?/, '').replace(/```$/, '')}
@@ -648,7 +650,16 @@ function NoteReader({
   const sourceLines = note.transcript.split('\n');
   const exportText = `# ${note.title}\n\n${note.course} · ${note.date}\nCoverage: ${note.captureStatus}\n\n## Quick review\n${note.quickNotes || ''}\n\n## Detailed notes\n${note.detailedNotes || ''}\n\n## My notes\n${annotation}\n\n## Original source\n${note.transcript}`;
   return (
-    <div className="note-reader">
+    <div className="note-reader" onClick={e=>{
+      const link=(e.target as HTMLElement).closest('a');
+      if(link?.getAttribute('href')?.startsWith('#source-L')){
+        e.preventDefault();
+        const line=document.getElementById(link.getAttribute('href')!.slice(1));
+        const details=line?.closest('details');
+        if(details)details.open=true;
+        line?.scrollIntoView({behavior:'smooth',block:'center'});
+      }
+    }}>
       <div className="note-toolbar">
         <span className="status-badge">{note.status}</span>
         <span className="muted">Coverage: {note.captureStatus}</span>
@@ -656,7 +667,7 @@ function NoteReader({
           <Button
             variant="outline"
             onClick={() =>
-              download(note.title + '.md', exportText, 'text/markdown')
+              download(note.title + '.md', exportStudyMarkdown(exportText), 'text/markdown')
             }
           >
             <Download />
@@ -791,7 +802,7 @@ function NoteReader({
               {answer ? (
                 <>
                   <Markdown text={q.answer} />
-                  {q.source && <p className="muted">Source: {q.source}</p>}
+                  {q.source && <Markdown text={'Source: '+q.source} />}
                   <div className="inline-actions">
                     {[false, true].map((correct) => (
                       <Button

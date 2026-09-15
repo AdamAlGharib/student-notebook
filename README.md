@@ -56,6 +56,10 @@ A browser import updates only that browser. The internal `/api/...` identifiers 
 
 ## Lecture package
 
+Study packages can include interactive teaching illustrations inside fenced `visual` JSON blocks in `detailedNotes`. The generic renderer supports bounded step sequences, flow cards, plain-text code, fixed-axis scatter plots, prediction prompts and revealable explanations. All diagram content remains inside the encrypted snapshot. See `lib/study-visual.ts` for the contract. Markdown export expands each diagram into readable steps; the Practice tab retains device-local self-rated progress. Prediction scratch boxes are temporary.
+
+The interactive release passes 46 static checks, TypeScript and production build. New tests cover common plot bounds, invalid visual input and readable diagram exports. Source citations open the transcript disclosure and scroll to the referenced line.
+
 Required fields: `course`, `date` (ISO lecture date), `title`, `transcript`, and `captureStatus` (`complete`, `partial`, `unknown`). Optional fields: `meetingId`, `sourceModifiedAt`, `sourceUrl`, `quickNotes`, `detailedNotes`, `questions` (`question`, `answer`, optional `source`), `uncertainties`, and `figures` (`title`, `description`).
 
 Always include the Wispr meeting ID and modification timestamp when available. Keep the same meeting ID/course/date for revisions. Manual identity derives from course/date/title. Use `[L12](#source-L12)` citations against newline-separated original transcript lines. Preserve supplied timestamps and speaker labels; invent neither. A finalized transcript does not prove the entire lecture was captured. Keep partial/uncertain recordings labelled and protect personal annotations during regeneration.
